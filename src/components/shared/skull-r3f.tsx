@@ -20,7 +20,7 @@ function hash(seed: number) {
 }
 
 function Starfield() {
-	const { geometry, sizes } = useMemo(() => {
+	const { geometry } = useMemo(() => {
 		const positions = new Float32Array(STAR_COUNT * 3)
 		const sizes = new Float32Array(STAR_COUNT)
 
@@ -210,29 +210,34 @@ function SkullMesh() {
 
 	return (
 		<group ref={groupRef} rotation={[0, Math.PI, 0]}>
-			<primitive
-				object={cloak}
-				renderOrder={0}
-				scale={fitScale}
-				position={position}
-			/>
+			<primitive object={cloak} renderOrder={0} scale={fitScale} position={position} />
 			{/* Eye socket occluders — flat disks rotated to face camera (-Z in local space) */}
-			<mesh position={[-eyeX, eyeY, eyeZ]} rotation={[0, Math.PI + 0.45, 0]} renderOrder={0} material={occluderMat}>
+			<mesh
+				position={[-eyeX, eyeY, eyeZ]}
+				rotation={[0, Math.PI + 0.45, 0]}
+				renderOrder={0}
+				material={occluderMat}
+			>
 				<circleGeometry args={[eyeRadius, 24]} />
 			</mesh>
-			<mesh position={[eyeX, eyeY, eyeZ]} rotation={[0, Math.PI - 0.45, 0]} renderOrder={0} material={occluderMat}>
+			<mesh
+				position={[eyeX, eyeY, eyeZ]}
+				rotation={[0, Math.PI - 0.45, 0]}
+				renderOrder={0}
+				material={occluderMat}
+			>
 				<circleGeometry args={[eyeRadius, 24]} />
 			</mesh>
 			{/* Nose occluder */}
-			<mesh position={[0, noseY, noseZ]} rotation={[0, Math.PI, 0]} renderOrder={0} material={occluderMat}>
+			<mesh
+				position={[0, noseY, noseZ]}
+				rotation={[0, Math.PI, 0]}
+				renderOrder={0}
+				material={occluderMat}
+			>
 				<circleGeometry args={[noseRadius, 24]} />
 			</mesh>
-			<primitive
-				object={wire}
-				renderOrder={1}
-				scale={fitScale}
-				position={position}
-			/>
+			<primitive object={wire} renderOrder={1} scale={fitScale} position={position} />
 		</group>
 	)
 }

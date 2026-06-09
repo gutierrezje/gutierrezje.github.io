@@ -65,7 +65,6 @@ function getMonthLabels(grid: Array<Array<{ date: string }>>) {
 // Width per column in px (cell 12px + gap 2px)
 const COL_W = 14
 
-
 function mergeActivity(activity: ActivityData): DayData[] {
 	const map = new Map<string, number>()
 	for (const { date, count } of [...activity.github, ...activity.leetcode]) {
@@ -86,9 +85,7 @@ export function ActivityHeatmap({ activity }: { activity: ActivityData }) {
 				<h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight md:text-4xl">
 					Activity
 				</h2>
-				<p className="mt-2 text-muted-foreground">
-					GitHub commits + LeetCode submissions.
-				</p>
+				<p className="mt-2 text-muted-foreground">GitHub commits + LeetCode submissions.</p>
 			</div>
 
 			<div className="rounded-lg border border-border bg-surface p-4 sm:p-6">

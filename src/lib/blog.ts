@@ -18,9 +18,7 @@ const POSTS_DIR = path.join(process.cwd(), "content/posts")
 
 function readPostFiles(): string[] {
 	if (!fs.existsSync(POSTS_DIR)) return []
-	return fs
-		.readdirSync(POSTS_DIR)
-		.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
+	return fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
 }
 
 export function getPosts(): BlogPost[] {

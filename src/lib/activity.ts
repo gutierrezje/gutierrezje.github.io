@@ -88,8 +88,7 @@ async function fetchLeetCodeActivity(username: string): Promise<DayData[]> {
 		if (!res.ok) return []
 
 		const json = await res.json()
-		const calendarStr: string | undefined =
-			json.data?.matchedUser?.userCalendar?.submissionCalendar
+		const calendarStr: string | undefined = json.data?.matchedUser?.userCalendar?.submissionCalendar
 
 		if (!calendarStr) return []
 

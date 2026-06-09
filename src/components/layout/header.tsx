@@ -8,20 +8,20 @@ const NAV_ITEMS = [
 
 export function Header() {
 	return (
-		<header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-md phantom:bg-[oklch(0.05_0.01_150/0.85)] phantom:border-[var(--neon-dim)] phantom:shadow-[0_1px_12px_var(--neon-dim)]">
-			<div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+		<header className="sticky top-0 z-40 border-b border-zinc-900 bg-black/85 backdrop-blur-md">
+			<div className="mx-auto flex h-16 w-full items-center justify-between px-6">
 				<a
 					href="/"
-					className="font-[family-name:var(--font-heading)] text-xl font-bold tracking-tight text-foreground"
+					className="font-display text-xl font-bold tracking-tight text-foreground transition-opacity hover:opacity-80"
 				>
-					Jesus
+					Home
 				</a>
 				<nav className="flex items-center gap-6">
 					{NAV_ITEMS.map((item) => (
 						<a
 							key={item.label}
 							href={item.href}
-							className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+							className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
 						>
 							{item.label}
 						</a>

@@ -1,5 +1,5 @@
-import { CURATED_OVERRIDES, EXCLUDED_REPOS, EXTRA_PROJECTS } from "@/lib/constants"
 import type { Project } from "@/lib/constants"
+import { CURATED_OVERRIDES, EXCLUDED_REPOS, EXTRA_PROJECTS } from "@/lib/constants"
 
 type GitHubRepo = {
 	name: string
@@ -19,16 +19,13 @@ function toTitleCase(kebab: string): string {
 
 export async function fetchProjects(): Promise<Project[]> {
 	try {
-		const res = await fetch(
-			"https://api.github.com/users/gutierrezje/repos?per_page=100",
-			{
-				headers: {
-					Accept: "application/vnd.github+json",
-					"X-GitHub-Api-Version": "2022-11-28",
-				},
-				next: { revalidate: false },
+		const res = await fetch("https://api.github.com/users/gutierrezje/repos?per_page=100", {
+			headers: {
+				Accept: "application/vnd.github+json",
+				"X-GitHub-Api-Version": "2022-11-28",
 			},
-		)
+			next: { revalidate: false },
+		})
 
 		if (!res.ok) {
 			console.warn(`GitHub API returned ${res.status}, falling back to extra projects`)
@@ -38,12 +35,7 @@ export async function fetchProjects(): Promise<Project[]> {
 		const repos: GitHubRepo[] = await res.json()
 
 		const projects: Project[] = repos
-			.filter(
-				(repo) =>
-					!repo.fork &&
-					!repo.archived &&
-					!EXCLUDED_REPOS.includes(repo.name),
-			)
+			.filter((repo) => !repo.fork && !repo.archived && !EXCLUDED_REPOS.includes(repo.name))
 			.map((repo) => {
 				const override = CURATED_OVERRIDES.find((o) => o.repoName === repo.name)
 				const { repoName: _, ...overrideFields } = override ?? { repoName: "" }

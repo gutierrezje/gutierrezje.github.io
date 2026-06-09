@@ -1,17 +1,11 @@
 import type { Metadata } from "next"
-import { DM_Sans, Fraunces, Space_Mono } from "next/font/google"
-import { ThemeProvider } from "@/components/theme/theme-provider"
+import { Inter, Space_Mono } from "next/font/google"
+import { PlexusBackground } from "@/components/shared/plexus-background"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
 
-const fraunces = Fraunces({
-	variable: "--font-fraunces",
-	subsets: ["latin"],
-	display: "swap",
-})
-
-const dmSans = DM_Sans({
-	variable: "--font-dm-sans",
+const inter = Inter({
+	variable: "--font-inter",
 	subsets: ["latin"],
 	display: "swap",
 })
@@ -25,9 +19,8 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
 	title: "Jesus — Developer Portfolio",
-	description: "Software engineer, builder, and creative developer.",
+	description: "Software engineer.",
 }
-
 
 export default function RootLayout({
 	children,
@@ -35,13 +28,14 @@ export default function RootLayout({
 	children: React.ReactNode
 }>) {
 	return (
-		<html lang="en" data-theme="phantom" suppressHydrationWarning>
-			<body className={`${fraunces.variable} ${dmSans.variable} ${spaceMono.variable} antialiased`}>
-				<ThemeProvider>
-					<TooltipProvider>
-						{children}
-					</TooltipProvider>
-				</ThemeProvider>
+		<html lang="en" suppressHydrationWarning>
+			<body
+				className={`${inter.variable} ${spaceMono.variable} bg-slate-50 text-slate-900 antialiased min-h-screen relative overflow-x-hidden`}
+			>
+				<PlexusBackground />
+				<div className="relative z-10 mx-auto min-h-screen max-w-4xl bg-black text-white shadow-[0_0_60px_rgba(0,0,0,0.85)] border-x border-zinc-900/40 flex flex-col">
+					<TooltipProvider>{children}</TooltipProvider>
+				</div>
 			</body>
 		</html>
 	)
