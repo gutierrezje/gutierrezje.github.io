@@ -1,0 +1,25 @@
+model: opencode-go/kimi-k2.6
+server:
+  port: 4096
+  auto_start: true
+context:
+  depth: default
+reasoning:
+  effort: auto
+retention:
+  hook_log_kb: 1024
+timeout: 300
+min_confidence: medium
+include:
+  - "**/*"
+exclude:
+  - "**/*.test.*"
+  - "**/*.spec.*"
+  - "**/*.lock"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/.git/**"
+rules: []
+skip_doc_only: false
+verbose: false
