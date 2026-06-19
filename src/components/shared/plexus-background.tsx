@@ -192,7 +192,7 @@ export function PlexusBackground() {
 			for (let r = 0; r < rows - 1; r++) {
 				const avgScale = (grid[r][0].scale + grid[r + 1][0].scale) / 2
 				const alphaMultiplier = Math.min(1.2, avgScale * 0.85)
-				ctx.strokeStyle = `rgba(80, 95, 115, ${0.2 * alphaMultiplier})`
+				ctx.strokeStyle = `rgba(28, 36, 48, ${0.18 * alphaMultiplier})`
 				ctx.lineWidth = 0.42 * alphaMultiplier
 
 				for (let c = 0; c < cols - 1; c++) {
@@ -247,7 +247,7 @@ export function PlexusBackground() {
 					}
 					ctx.beginPath()
 					ctx.arc(p.screenX, p.screenY, 1.05 * p.scale, 0, Math.PI * 2)
-					ctx.fillStyle = `rgba(80, 95, 115, ${0.22 * Math.min(1, p.scale)})`
+					ctx.fillStyle = `rgba(28, 36, 48, ${0.18 * Math.min(1, p.scale)})`
 					ctx.fill()
 				}
 			}

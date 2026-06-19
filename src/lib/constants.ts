@@ -13,7 +13,7 @@ export type Social = {
 	icon: "github" | "linkedin"
 }
 
-export const INCLUDED_REPOS: string[] = ["diffowl"]
+export const INCLUDED_REPOS: string[] = ["diffowl", "leet-buddy"]
 
 export type CuratedOverride = Partial<Project> & { repoName: string }
 
@@ -21,6 +21,10 @@ export const CURATED_OVERRIDES: CuratedOverride[] = [
 	{
 		repoName: "diffowl",
 		title: "DiffOwl",
+	},
+	{
+		repoName: "leet-buddy",
+		title: "LeetBuddy",
 	},
 ]
 
