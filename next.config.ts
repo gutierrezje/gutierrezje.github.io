@@ -1,7 +1,13 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
+
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+	output: "export",
+	images: {
+		unoptimized: true,
+	},
+	basePath,
+}
 
-export default nextConfig;
+export default nextConfig

@@ -12,6 +12,7 @@ type SkullR3FProps = {
 // Matches the --neon oklch(0.85 0.28 142) ≈ #39ff14
 const NEON_GREEN = 0x39ff14
 const STAR_COUNT = 500
+const SKULL_MODEL_PATH = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/dec_skull.glb`
 
 /** Deterministic pseudo-random hash */
 function hash(seed: number) {
@@ -83,7 +84,7 @@ function Starfield() {
 }
 
 function SkullMesh() {
-	const { scene } = useGLTF("/dec_skull.glb")
+	const { scene } = useGLTF(SKULL_MODEL_PATH)
 
 	const { cloak, wire, center, fitScale } = useMemo(() => {
 		const base = scene.clone(true)
@@ -114,6 +115,7 @@ function SkullMesh() {
 				obj.material = new THREE.MeshBasicMaterial({
 					color: NEON_GREEN,
 					wireframe: true,
+					wireframeLinewidth: 2,
 					side: THREE.DoubleSide,
 					depthWrite: false,
 					toneMapped: false,
@@ -261,4 +263,4 @@ export function SkullR3F({ className }: SkullR3FProps) {
 	)
 }
 
-useGLTF.preload("/dec_skull.glb")
+useGLTF.preload(SKULL_MODEL_PATH)

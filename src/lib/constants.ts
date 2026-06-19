@@ -13,18 +13,15 @@ export type Social = {
 	icon: "github" | "linkedin"
 }
 
-export const EXCLUDED_REPOS: string[] = ["mysite"]
+export const INCLUDED_REPOS: string[] = ["diffowl"]
 
 export type CuratedOverride = Partial<Project> & { repoName: string }
 
 export const CURATED_OVERRIDES: CuratedOverride[] = [
-	// Example:
-	// {
-	//   repoName: "my-repo",
-	//   description: "Custom description override",
-	//   featured: true,
-	//   inProgress: true,
-	// },
+	{
+		repoName: "diffowl",
+		title: "DiffOwl",
+	},
 ]
 
 export const EXTRA_PROJECTS: Project[] = []

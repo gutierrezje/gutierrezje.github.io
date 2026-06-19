@@ -1,5 +1,5 @@
 import type { Project } from "@/lib/constants"
-import { CURATED_OVERRIDES, EXCLUDED_REPOS, EXTRA_PROJECTS } from "@/lib/constants"
+import { CURATED_OVERRIDES, EXTRA_PROJECTS, INCLUDED_REPOS } from "@/lib/constants"
 
 type GitHubRepo = {
 	name: string
@@ -35,7 +35,7 @@ export async function fetchProjects(): Promise<Project[]> {
 		const repos: GitHubRepo[] = await res.json()
 
 		const projects: Project[] = repos
-			.filter((repo) => !repo.fork && !repo.archived && !EXCLUDED_REPOS.includes(repo.name))
+			.filter((repo) => !repo.fork && !repo.archived && INCLUDED_REPOS.includes(repo.name))
 			.map((repo) => {
 				const override = CURATED_OVERRIDES.find((o) => o.repoName === repo.name)
 				const { repoName: _, ...overrideFields } = override ?? { repoName: "" }
