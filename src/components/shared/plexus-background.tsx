@@ -34,9 +34,10 @@ export function PlexusBackground() {
 		let height = window.innerHeight
 		const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
 
-		const spacingX = 65 // Base side length of the equilateral triangles (denser mesh)
-		const spacingY = spacingX * 0.866025 // Vertical step to make triangles perfectly equilateral
-		const rows = 20
+		const spacingX = 65 // Base side length of the equilateral triangles
+		const spacingY = spacingX * 0.866025 // Vertical step for equilateral triangles
+		const topOverscan = 90
+		const bottomOverscan = 260
 		const mouseRadius = 180
 		const mouseRadiusSquared = mouseRadius * mouseRadius
 
@@ -47,14 +48,20 @@ export function PlexusBackground() {
 			const widthFactor = 3.0
 			const cols = Math.ceil((width * widthFactor) / spacingX) + 8
 
-			for (let r = 0; r < rows; r++) {
+			const rowCount = Math.max(
+				24,
+				Math.ceil((height + topOverscan + bottomOverscan) / (spacingY * 0.52)),
+			)
+			let rowY = -topOverscan
+
+			for (let r = 0; r < rowCount; r++) {
 				grid[r] = []
-				const t = r / (rows - 1)
-				// Scale goes from 0.35 at the top (far away) to 1.25 at the bottom (close up)
-				const scale = 0.35 + 0.9 * t
-				// Non-linear Y mapping packs rows closer together at the top of the screen
-				const yFraction = t ** 1.45
-				const baseY = yFraction * height
+				const t = r / (rowCount - 1)
+				// Scale goes from far to near, while row-to-row Y spacing below keeps
+				// the projected mesh closer to equilateral instead of stretching at the top.
+				const scale = 0.48 + 0.82 * t
+				const nextT = Math.min(1, (r + 1) / (rowCount - 1))
+				const nextScale = 0.48 + 0.82 * nextT
 
 				// Isometric shift: offset every odd row by half of the horizontal spacing
 				const rowShift = (r % 2) * (spacingX / 2)
@@ -68,7 +75,7 @@ export function PlexusBackground() {
 
 					grid[r].push({
 						baseX,
-						baseY: baseY + offsetY * scale,
+						baseY: rowY + offsetY * scale,
 						scale,
 						phase: Math.random() * Math.PI * 2,
 						amplitude: Math.random() * 26 + 10,
@@ -77,6 +84,8 @@ export function PlexusBackground() {
 						screenY: 0,
 					})
 				}
+
+				rowY += spacingY * ((scale + nextScale) / 2)
 			}
 		}
 
@@ -192,8 +201,8 @@ export function PlexusBackground() {
 			for (let r = 0; r < rows - 1; r++) {
 				const avgScale = (grid[r][0].scale + grid[r + 1][0].scale) / 2
 				const alphaMultiplier = Math.min(1.2, avgScale * 0.85)
-				ctx.strokeStyle = `rgba(28, 36, 48, ${0.18 * alphaMultiplier})`
-				ctx.lineWidth = 0.42 * alphaMultiplier
+				ctx.strokeStyle = `rgba(28, 36, 48, ${0.22 * alphaMultiplier})`
+				ctx.lineWidth = 0.62 * alphaMultiplier
 
 				for (let c = 0; c < cols - 1; c++) {
 					const p = grid[r][c]
@@ -325,7 +334,7 @@ export function PlexusBackground() {
 		<canvas
 			ref={canvasRef}
 			className="fixed inset-0 -z-10 block size-full pointer-events-none"
-			style={{ background: "transparent" }}
+			style={{ background: "rgb(2 6 12)" }}
 		/>
 	)
 }
