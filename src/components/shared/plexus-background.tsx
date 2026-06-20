@@ -37,7 +37,7 @@ export function PlexusBackground() {
 		const spacingX = 65 // Base side length of the equilateral triangles
 		const spacingY = spacingX * 0.866025 // Vertical step for equilateral triangles
 		const topOverscan = 90
-		const bottomOverscan = 260
+		const bottomOverscan = 420
 		const mouseRadius = 180
 		const mouseRadiusSquared = mouseRadius * mouseRadius
 
@@ -334,7 +334,7 @@ export function PlexusBackground() {
 		<canvas
 			ref={canvasRef}
 			className="fixed inset-0 -z-10 block size-full pointer-events-none"
-			style={{ background: "rgb(2 6 12)" }}
+			style={{ background: "transparent" }}
 		/>
 	)
 }
