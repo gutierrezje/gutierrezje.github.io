@@ -34,23 +34,22 @@ export function PlexusBackground() {
 		let height = window.innerHeight
 		const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
 
-		const spacingX = 65 // Base side length of the equilateral triangles
+		const spacingX = 70 // Base side length of the equilateral triangles
 		const spacingY = spacingX * 0.866025 // Vertical step for equilateral triangles
 		const topOverscan = 90
-		const bottomOverscan = 420
+		const bottomOverscan = 320
 		const mouseRadius = 180
 		const mouseRadiusSquared = mouseRadius * mouseRadius
 
 		const initGrid = () => {
 			grid = []
-			// Width factor compensations: since the top row is scaled down by 0.35, the grid base width
-			// needs to be ~3x wider than the viewport to cover the top-left and top-right corners.
-			const widthFactor = 3.0
+			// Width factor compensates for the perspective scale without generating
+			// far-offscreen cells that still have to be animated every frame.
+			const widthFactor = 2.25
 			const cols = Math.ceil((width * widthFactor) / spacingX) + 8
-
 			const rowCount = Math.max(
 				24,
-				Math.ceil((height + topOverscan + bottomOverscan) / (spacingY * 0.52)),
+				Math.ceil((height + topOverscan + bottomOverscan) / spacingY) + 4,
 			)
 			let rowY = -topOverscan
 
@@ -59,9 +58,9 @@ export function PlexusBackground() {
 				const t = r / (rowCount - 1)
 				// Scale goes from far to near, while row-to-row Y spacing below keeps
 				// the projected mesh closer to equilateral instead of stretching at the top.
-				const scale = 0.48 + 0.82 * t
+				const scale = 0.72 + 0.46 * t
 				const nextT = Math.min(1, (r + 1) / (rowCount - 1))
-				const nextScale = 0.48 + 0.82 * nextT
+				const nextScale = 0.72 + 0.46 * nextT
 
 				// Isometric shift: offset every odd row by half of the horizontal spacing
 				const rowShift = (r % 2) * (spacingX / 2)
@@ -95,7 +94,7 @@ export function PlexusBackground() {
 			canvas.width = width
 			canvas.height = height
 			// Ultrawide canvases have substantially more cells to update and draw.
-			frameInterval = 1000 / (width >= 2560 ? 45 : 60)
+			frameInterval = 1000 / (width >= 2560 ? 40 : 45)
 			initGrid()
 		}
 
@@ -213,7 +212,9 @@ export function PlexusBackground() {
 					// View frustum culling: skip rendering if the cell is completely off-screen
 					const minX = Math.min(p.screenX, pRight.screenX, pDown.screenX, pDiag.screenX)
 					const maxX = Math.max(p.screenX, pRight.screenX, pDown.screenX, pDiag.screenX)
-					if (maxX < -50 || minX > width + 50) {
+					const minY = Math.min(p.screenY, pRight.screenY, pDown.screenY, pDiag.screenY)
+					const maxY = Math.max(p.screenY, pRight.screenY, pDown.screenY, pDiag.screenY)
+					if (maxX < -50 || minX > width + 50 || maxY < -70 || minY > height + 70) {
 						continue
 					}
 
@@ -251,7 +252,12 @@ export function PlexusBackground() {
 				for (let c = 0; c < cols; c++) {
 					const p = grid[r][c]
 					// Skip drawing off-screen vertex dots
-					if (p.screenX < -10 || p.screenX > width + 10) {
+					if (
+						p.screenX < -10 ||
+						p.screenX > width + 10 ||
+						p.screenY < -10 ||
+						p.screenY > height + 10
+					) {
 						continue
 					}
 					ctx.beginPath()
