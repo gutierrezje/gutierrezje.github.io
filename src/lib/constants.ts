@@ -21,6 +21,7 @@ export const CURATED_OVERRIDES: CuratedOverride[] = [
 	{
 		repoName: "diffowl",
 		title: "DiffOwl",
+		href: "https://gutierrezje.github.io/diffowl/",
 	},
 	{
 		repoName: "leet-buddy",
