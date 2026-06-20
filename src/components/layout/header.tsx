@@ -3,7 +3,6 @@ import { SocialLinks } from "@/components/shared/social-links"
 const NAV_ITEMS = [
 	{ label: "Projects", href: "#projects" },
 	{ label: "Blog", href: "#blog" },
-	{ label: "Activity", href: "#activity" },
 ]
 
 export function Header() {
