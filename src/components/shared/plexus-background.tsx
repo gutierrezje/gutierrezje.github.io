@@ -2,20 +2,32 @@
 
 import { useEffect, useRef } from "react"
 
-interface GridParticle {
-	baseX: number
-	baseY: number
-	scale: number
+interface MeshPoint {
+	x: number
+	depth: number
+	z: number
 	phase: number
 	amplitude: number
 	speed: number
 	screenX: number
 	screenY: number
+	scale: number
+	forward: number
+}
+
+type MeshTriangle = {
+	a: number
+	b: number
+	c: number
+	tone: number
+}
+
+type DrawableTriangle = MeshTriangle & {
+	depth: number
 }
 
 export function PlexusBackground() {
 	const canvasRef = useRef<HTMLCanvasElement>(null)
-	const mouseRef = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false })
 
 	useEffect(() => {
 		const canvas = canvasRef.current
@@ -29,73 +41,98 @@ export function PlexusBackground() {
 		let lastFrameTime = 0
 		let frameInterval = 1000 / 60
 		let isRunning = false
-		let grid: GridParticle[][] = []
+		let points: MeshPoint[] = []
+		let triangles: MeshTriangle[] = []
+		let drawableTriangles: DrawableTriangle[] = []
 		let width = window.innerWidth
 		let height = window.innerHeight
+		let dpr = Math.min(window.devicePixelRatio || 1, 2)
 		const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
 
-		const spacingX = 70 // Base side length of the equilateral triangles
-		const spacingY = spacingX * 0.866025 // Vertical step for equilateral triangles
-		const topOverscan = 90
-		const bottomOverscan = 320
-		const mouseRadius = 180
-		const mouseRadiusSquared = mouseRadius * mouseRadius
+		const spacing = 146
+		const rowStep = spacing * 0.9
+		const focalLength = 760
+		const cameraDepth = -520
+		const cameraHeight = 360
+		const cameraPitch = 0.7
+		const horizon = 0.48
 
-		const initGrid = () => {
-			grid = []
-			// Width factor compensates for the perspective scale without generating
-			// far-offscreen cells that still have to be animated every frame.
-			const widthFactor = 2.25
-			const cols = Math.ceil((width * widthFactor) / spacingX) + 8
-			const rowCount = Math.max(
-				24,
-				Math.ceil((height + topOverscan + bottomOverscan) / spacingY) + 4,
-			)
-			let rowY = -topOverscan
+		const initMesh = () => {
+			points = []
+			triangles = []
+			drawableTriangles = []
 
-			for (let r = 0; r < rowCount; r++) {
-				grid[r] = []
-				const t = r / (rowCount - 1)
-				// Scale goes from far to near, while row-to-row Y spacing below keeps
-				// the projected mesh closer to equilateral instead of stretching at the top.
-				const scale = 0.72 + 0.46 * t
-				const nextT = Math.min(1, (r + 1) / (rowCount - 1))
-				const nextScale = 0.72 + 0.46 * nextT
+			const pitchCos = Math.cos(cameraPitch)
+			const pitchSin = Math.sin(cameraPitch)
+			const nearDepth = cameraDepth - 100
+			const farDepth = 4200 + height * 1.35
+			const farForward = (farDepth - cameraDepth) * pitchCos - (0 - cameraHeight) * pitchSin
+			const worldHalfWidth = (width * 0.62 * farForward) / focalLength + spacing * 3
+			const cols = Math.ceil((worldHalfWidth * 2) / spacing) + 2
+			const rows = Math.ceil((farDepth - nearDepth) / rowStep) + 2
+			const startX = -(cols * spacing) / 2
+			// Light jitter only — too much breaks the radial fan around each vertex.
+			const jitter = spacing * 0.14
 
-				// Isometric shift: offset every odd row by half of the horizontal spacing
-				const rowShift = (r % 2) * (spacingX / 2)
-
-				for (let c = 0; c < cols; c++) {
-					// Static random offsets to make the mesh look organic
-					const offsetX = (Math.random() - 0.5) * spacingX * 0.12
-					const offsetY = (Math.random() - 0.5) * spacingY * 0.12
-
-					const baseX = (c - cols / 2) * spacingX + rowShift + offsetX
-
-					grid[r].push({
-						baseX,
-						baseY: rowY + offsetY * scale,
-						scale,
+			// 1. Lay out a shared floor-plane mesh. Every point is reused by all the
+			// triangles touching it, so vertical waves bend one connected surface.
+			//   index = row * cols + col
+			for (let row = 0; row < rows; row++) {
+				for (let col = 0; col < cols; col++) {
+					// Stagger odd rows half a cell for a triangular (not square) lattice.
+					const stagger = (row % 2) * (spacing / 2)
+					const x = startX + col * spacing + stagger + (Math.random() - 0.5) * jitter
+					const depth = nearDepth + row * rowStep + (Math.random() - 0.5) * jitter
+					points.push({
+						x,
+						depth,
+						z: 0,
 						phase: Math.random() * Math.PI * 2,
-						amplitude: Math.random() * 26 + 10,
-						speed: Math.random() * 0.0012 + 0.0006,
+						amplitude: Math.random() * 34 + 18,
+						speed: Math.random() * 0.00038 + 0.00018,
 						screenX: 0,
 						screenY: 0,
+						scale: 0,
+						forward: 0,
 					})
 				}
+			}
 
-				rowY += spacingY * ((scale + nextScale) / 2)
+			// 2. Triangulate to match the half-cell stagger so the lattice is a true
+			// triangular tiling: every interior vertex is the hub of six triangles
+			// fanning radially around it, instead of a skewed rectangular split.
+			const idx = (r: number, c: number) => r * cols + c
+			const pushTri = (a: number, b: number, c: number, tone: number) => {
+				triangles.push({ a, b, c, tone })
+			}
+
+			for (let row = 0; row < rows - 1; row++) {
+				for (let col = 0; col < cols - 1; col++) {
+					// Stable per-cell tones so the facet patchwork reads even at rest.
+					const tone = ((row * 5 + col * 3) % 5) / 5
+					if (row % 2 === 0) {
+						// Even rows are unshifted; the row below is shifted right.
+						pushTri(idx(row, col), idx(row, col + 1), idx(row + 1, col), tone)
+						pushTri(idx(row, col + 1), idx(row + 1, col + 1), idx(row + 1, col), (tone + 0.4) % 1)
+					} else {
+						// Odd rows are shifted right; the row below is unshifted.
+						pushTri(idx(row, col), idx(row, col + 1), idx(row + 1, col + 1), tone)
+						pushTri(idx(row, col), idx(row + 1, col + 1), idx(row + 1, col), (tone + 0.4) % 1)
+					}
+				}
 			}
 		}
 
 		const resizeCanvas = () => {
 			width = window.innerWidth
 			height = window.innerHeight
-			canvas.width = width
-			canvas.height = height
-			// Ultrawide canvases have substantially more cells to update and draw.
+			dpr = Math.min(window.devicePixelRatio || 1, 2)
+			canvas.width = Math.round(width * dpr)
+			canvas.height = Math.round(height * dpr)
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+			// Ultrawide canvases have substantially more triangles to update and draw.
 			frameInterval = 1000 / (width >= 2560 ? 40 : 45)
-			initGrid()
+			initMesh()
 		}
 
 		const handleResize = () => {
@@ -109,48 +146,6 @@ export function PlexusBackground() {
 
 		resizeCanvas()
 
-		// Backface culling calculation in 2D screen space
-		// Computes the signed area of a triangle. Since vertices are defined in clockwise order,
-		// any triangle winding counter-clockwise (determinant <= 0) is facing away or collapsed.
-		const isBackfacing = (a: GridParticle, b: GridParticle, c: GridParticle) => {
-			const det =
-				(b.screenX - a.screenX) * (c.screenY - a.screenY) -
-				(b.screenY - a.screenY) * (c.screenX - a.screenX)
-			return det <= 0
-		}
-
-		const getTriangleLight = (a: GridParticle, b: GridParticle, c: GridParticle) => {
-			const edgeAX = b.screenX - a.screenX
-			const edgeAY = b.screenY - a.screenY
-			const edgeBX = c.screenX - a.screenX
-			const edgeBY = c.screenY - a.screenY
-			const slope = (edgeAY - edgeBY) / Math.max(spacingY, 1)
-			const horizontalTilt = (edgeAX + edgeBX) / Math.max(spacingX * 2, 1)
-			return Math.max(0, Math.min(1, 0.42 + slope * 0.32 - horizontalTilt * 0.12))
-		}
-
-		const drawTriangle = (
-			a: GridParticle,
-			b: GridParticle,
-			c: GridParticle,
-			alphaMultiplier: number,
-			baseAlpha: number,
-		) => {
-			if (isBackfacing(a, b, c)) return
-
-			const light = getTriangleLight(a, b, c)
-			const shade = Math.round(58 + light * 42)
-
-			ctx.beginPath()
-			ctx.moveTo(a.screenX, a.screenY)
-			ctx.lineTo(b.screenX, b.screenY)
-			ctx.lineTo(c.screenX, c.screenY)
-			ctx.closePath()
-			ctx.fillStyle = `rgba(${shade - 8}, ${shade}, ${shade + 14}, ${(baseAlpha + light * 0.025) * alphaMultiplier})`
-			ctx.fill()
-			ctx.stroke()
-		}
-
 		// Animation Loop
 		const draw = (timestamp: number, force = false) => {
 			if (!force && timestamp - lastFrameTime < frameInterval) {
@@ -160,111 +155,102 @@ export function PlexusBackground() {
 			lastFrameTime = timestamp
 			ctx.clearRect(0, 0, width, height)
 
-			const rows = grid.length
-			const cols = grid[0]?.length || 0
 			const time = reducedMotion.matches ? 0 : timestamp
-			const mouse = mouseRef.current
 
-			// 1. Update positions with Y oscillation & Mouse repulsion
-			for (let r = 0; r < rows; r++) {
-				for (let c = 0; c < cols; c++) {
-					const p = grid[r][c]
+			const pitchCos = Math.cos(cameraPitch)
+			const pitchSin = Math.sin(cameraPitch)
+			const centerY = height * horizon
 
-					// Oscillate vertical height and add a tiny horizontal drift, scaled by perspective depth
-					const yOffset = Math.sin(time * p.speed + p.phase) * p.amplitude * p.scale
-					const xOffset = Math.cos(time * p.speed * 0.8 + p.phase) * 6 * p.scale
+			// 1. Update real 3D floor-plane positions, then project through a pitched
+			// camera. The bob happens before projection, so lifted vertices naturally
+			// expand and shift as part of the perspective transform.
+			for (const p of points) {
+				const depthT = Math.min(1, p.depth / 4200)
+				const zBob = Math.sin(time * p.speed + p.phase)
+				p.z = zBob * p.amplitude * (1.05 - depthT * 0.45)
 
-					let targetX = width / 2 + p.baseX * p.scale + xOffset
-					let targetY = p.baseY + yOffset
-
-					// Mouse repulsion in screen space coordinates
-					if (mouse.active && !reducedMotion.matches) {
-						const dx = targetX - mouse.x
-						const dy = targetY - mouse.y
-						const distanceSquared = dx * dx + dy * dy
-						if (distanceSquared > 0 && distanceSquared < mouseRadiusSquared) {
-							const distance = Math.sqrt(distanceSquared)
-							const force = (1 - distance / mouseRadius) * 32 * p.scale
-							const forcePerPixel = force / distance
-							targetX += dx * forcePerPixel
-							targetY += dy * forcePerPixel
-						}
-					}
-
-					p.screenX = targetX
-					p.screenY = targetY
+				const relativeDepth = p.depth - cameraDepth
+				const relativeHeight = p.z - cameraHeight
+				const forward = relativeDepth * pitchCos - relativeHeight * pitchSin
+				if (forward <= 1) {
+					p.scale = 0
+					p.forward = 0
+					continue
 				}
+
+				const vertical = relativeDepth * pitchSin + relativeHeight * pitchCos
+				p.forward = forward
+				p.scale = focalLength / forward
+				p.screenX = width / 2 + p.x * p.scale
+				p.screenY = centerY - vertical * p.scale
 			}
 
-			// 2. Draw Triangles and Lines
-			for (let r = 0; r < rows - 1; r++) {
-				const avgScale = (grid[r][0].scale + grid[r + 1][0].scale) / 2
-				const alphaMultiplier = Math.min(1.2, avgScale * 0.85)
-				ctx.strokeStyle = `rgba(28, 36, 48, ${0.22 * alphaMultiplier})`
-				ctx.lineWidth = 0.62 * alphaMultiplier
+			// 2. Collect visible triangles and sort far-to-near. Canvas is a painter,
+			// so drawing foreground facets last is what prevents distant wirework
+			// from bleeding through the near surface.
+			drawableTriangles.length = 0
+			for (const tri of triangles) {
+				const a = points[tri.a]
+				const b = points[tri.b]
+				const c = points[tri.c]
+				if (a.scale === 0 || b.scale === 0 || c.scale === 0) continue
+				const minX = Math.min(a.screenX, b.screenX, c.screenX)
+				const maxX = Math.max(a.screenX, b.screenX, c.screenX)
+				const minY = Math.min(a.screenY, b.screenY, c.screenY)
+				const maxY = Math.max(a.screenY, b.screenY, c.screenY)
+				if (maxX < 0 || minX > width || maxY < 0 || minY > height) continue
 
-				for (let c = 0; c < cols - 1; c++) {
-					const p = grid[r][c]
-					const pRight = grid[r][c + 1]
-					const pDown = grid[r + 1][c]
-					const pDiag = grid[r + 1][c + 1]
+				drawableTriangles.push({
+					...tri,
+					depth: (a.forward + b.forward + c.forward) / 3,
+				})
+			}
+			drawableTriangles.sort((a, b) => b.depth - a.depth)
 
-					// View frustum culling: skip rendering if the cell is completely off-screen
-					const minX = Math.min(p.screenX, pRight.screenX, pDown.screenX, pDiag.screenX)
-					const maxX = Math.max(p.screenX, pRight.screenX, pDown.screenX, pDiag.screenX)
-					const minY = Math.min(p.screenY, pRight.screenY, pDown.screenY, pDiag.screenY)
-					const maxY = Math.max(p.screenY, pRight.screenY, pDown.screenY, pDiag.screenY)
-					if (maxX < -50 || minX > width + 50 || maxY < -70 || minY > height + 70) {
-						continue
-					}
+			// 3. Paint each facet as one solid face plus its own border. The nearly
+			// opaque fill acts as terrain, blocking strokes from triangles behind it.
+			for (const tri of drawableTriangles) {
+				const a = points[tri.a]
+				const b = points[tri.b]
+				const c = points[tri.c]
+				const lift = (a.z + b.z + c.z) / 3
+				const depthFade = (a.scale + b.scale + c.scale) / 3
+				const slope = Math.abs(a.screenY - b.screenY) + Math.abs(b.screenY - c.screenY)
+				const light = Math.max(
+					0,
+					Math.min(1, 0.42 + tri.tone * 0.2 + lift * 0.006 + slope * 0.0016),
+				)
+				const face = Math.round(238 - light * 24)
+				const edgeAlpha = Math.max(0.035, Math.min(0.22, 0.15 * Math.min(1.35, depthFade)))
+				const edgeWidth = Math.max(0.42, 0.7 * Math.min(1.3, depthFade))
 
-					// Triangulation coordinates defined in consistent clockwise order
-					let tri1A: GridParticle
-					let tri1B: GridParticle
-					let tri1C: GridParticle
-					let tri2A: GridParticle
-					let tri2B: GridParticle
-					let tri2C: GridParticle
-
-					if (r % 2 === 0) {
-						tri1A = p
-						tri1B = pRight
-						tri1C = pDown
-						tri2A = pRight
-						tri2B = pDiag
-						tri2C = pDown
-					} else {
-						tri1A = p
-						tri1B = pDiag
-						tri1C = pDown
-						tri2A = p
-						tri2B = pRight
-						tri2C = pDiag
-					}
-
-					drawTriangle(tri1A, tri1B, tri1C, alphaMultiplier, 0.012)
-					drawTriangle(tri2A, tri2B, tri2C, alphaMultiplier, 0.007)
-				}
+				ctx.beginPath()
+				ctx.moveTo(a.screenX, a.screenY)
+				ctx.lineTo(b.screenX, b.screenY)
+				ctx.lineTo(c.screenX, c.screenY)
+				ctx.closePath()
+				ctx.fillStyle = `rgb(${face}, ${face + 3}, ${face + 8})`
+				ctx.fill()
+				ctx.strokeStyle = `rgba(28, 36, 48, ${edgeAlpha})`
+				ctx.lineWidth = edgeWidth
+				ctx.stroke()
 			}
 
-			// 3. Draw tiny vertex dots
-			for (let r = 0; r < rows; r++) {
-				for (let c = 0; c < cols; c++) {
-					const p = grid[r][c]
-					// Skip drawing off-screen vertex dots
-					if (
-						p.screenX < -10 ||
-						p.screenX > width + 10 ||
-						p.screenY < -10 ||
-						p.screenY > height + 10
-					) {
-						continue
-					}
-					ctx.beginPath()
-					ctx.arc(p.screenX, p.screenY, 1.05 * p.scale, 0, Math.PI * 2)
-					ctx.fillStyle = `rgba(28, 36, 48, ${0.18 * Math.min(1, p.scale)})`
-					ctx.fill()
+			// 4. Draw tiny vertex dots after the terrain pass, kept faint so they read
+			// as facet vertices instead of a separate particle field.
+			for (const p of points) {
+				if (
+					p.screenX < -10 ||
+					p.screenX > width + 10 ||
+					p.screenY < -10 ||
+					p.screenY > height + 10
+				) {
+					continue
 				}
+				ctx.beginPath()
+				ctx.arc(p.screenX, p.screenY, Math.max(0.5, 1.05 * p.scale), 0, Math.PI * 2)
+				ctx.fillStyle = `rgba(28, 36, 48, ${0.18 * Math.min(1, p.scale)})`
+				ctx.fill()
 			}
 
 			if (isRunning) animationFrameId = requestAnimationFrame(draw)
@@ -295,27 +281,13 @@ export function PlexusBackground() {
 		const handleMotionPreferenceChange = () => {
 			if (reducedMotion.matches) {
 				stopAnimation()
-				mouseRef.current.active = false
 				draw(performance.now(), true)
 			} else {
 				startAnimation()
 			}
 		}
 
-		// Mouse events
-		const handleMouseMove = (e: MouseEvent) => {
-			mouseRef.current.x = e.clientX
-			mouseRef.current.y = e.clientY
-			mouseRef.current.active = true
-		}
-
-		const handleMouseLeave = () => {
-			mouseRef.current.active = false
-		}
-
 		window.addEventListener("resize", handleResize)
-		window.addEventListener("mousemove", handleMouseMove)
-		document.addEventListener("mouseleave", handleMouseLeave)
 		document.addEventListener("visibilitychange", handleVisibilityChange)
 		reducedMotion.addEventListener("change", handleMotionPreferenceChange)
 
@@ -327,8 +299,6 @@ export function PlexusBackground() {
 
 		return () => {
 			window.removeEventListener("resize", handleResize)
-			window.removeEventListener("mousemove", handleMouseMove)
-			document.removeEventListener("mouseleave", handleMouseLeave)
 			document.removeEventListener("visibilitychange", handleVisibilityChange)
 			reducedMotion.removeEventListener("change", handleMotionPreferenceChange)
 			stopAnimation()
@@ -337,10 +307,33 @@ export function PlexusBackground() {
 	}, [])
 
 	return (
-		<canvas
-			ref={canvasRef}
-			className="fixed inset-0 -z-10 block size-full pointer-events-none"
-			style={{ background: "transparent" }}
-		/>
+		<>
+			<canvas
+				ref={canvasRef}
+				className="fixed inset-0 -z-10 block size-full pointer-events-none"
+				style={{ background: "transparent" }}
+			/>
+			<div
+				className="pointer-events-none fixed inset-0 -z-10"
+				style={{
+					background:
+						"radial-gradient(ellipse at center, transparent 32%, rgba(255, 255, 255, 0.38) 68%, rgba(255, 255, 255, 0.96) 100%)",
+				}}
+			/>
+			<div
+				className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[62vh] bg-gradient-to-b from-white via-white/90 to-transparent backdrop-blur-[10px]"
+				style={{
+					maskImage: "linear-gradient(to bottom, black, transparent)",
+					WebkitMaskImage: "linear-gradient(to bottom, black, transparent)",
+				}}
+			/>
+			<div
+				className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-[58vh] bg-gradient-to-t from-white via-white/85 to-transparent backdrop-blur-[10px]"
+				style={{
+					maskImage: "linear-gradient(to top, black, transparent)",
+					WebkitMaskImage: "linear-gradient(to top, black, transparent)",
+				}}
+			/>
+		</>
 	)
 }

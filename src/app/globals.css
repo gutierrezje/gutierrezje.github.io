@@ -124,20 +124,6 @@
 		box-shadow: 0 0 80px rgb(0 0 0 / 0.8);
 	}
 
-	.dark-glass-column::before {
-		content: "";
-		position: absolute;
-		inset: 0;
-		z-index: -1;
-		pointer-events: none;
-		background: linear-gradient(
-			115deg,
-			transparent 20%,
-			rgb(255 255 255 / 0.015) 42%,
-			transparent 58%
-		);
-	}
-
 	@media (width >= 40rem) {
 		.dark-glass-column {
 			box-shadow:
