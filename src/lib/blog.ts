@@ -8,6 +8,7 @@ export type BlogPost = {
 	date: string
 	description: string
 	tags: string[]
+	draft: boolean
 }
 
 export type BlogPostWithContent = BlogPost & {
@@ -15,6 +16,15 @@ export type BlogPostWithContent = BlogPost & {
 }
 
 const POSTS_DIR = path.join(process.cwd(), "content/posts")
+
+// Posts with `draft: true` frontmatter are visible during `next dev` but never published.
+const includeDrafts = process.env.NODE_ENV === "development"
+
+// YAML parses unquoted dates (date: 2026-07-10) as Date objects; keep the public type a string.
+function normalizeDate(value: unknown): string {
+	if (value instanceof Date) return value.toISOString().slice(0, 10)
+	return typeof value === "string" ? value : ""
+}
 
 function readPostFiles(): string[] {
 	if (!fs.existsSync(POSTS_DIR)) return []
@@ -33,11 +43,13 @@ export function getPosts(): BlogPost[] {
 			return {
 				slug,
 				title: data.title ?? slug,
-				date: data.date ?? "",
+				date: normalizeDate(data.date),
 				description: data.description ?? "",
 				tags: data.tags ?? [],
+				draft: data.draft === true,
 			} satisfies BlogPost
 		})
+		.filter((post) => includeDrafts || !post.draft)
 		.sort((a, b) => (a.date < b.date ? 1 : -1))
 }
 
@@ -51,12 +63,16 @@ export function getPost(slug: string): BlogPostWithContent | null {
 	const raw = fs.readFileSync(filePath, "utf-8")
 	const { data, content } = matter(raw)
 
+	const draft = data.draft === true
+	if (draft && !includeDrafts) return null
+
 	return {
 		slug,
 		title: data.title ?? slug,
-		date: data.date ?? "",
+		date: normalizeDate(data.date),
 		description: data.description ?? "",
 		tags: data.tags ?? [],
+		draft,
 		content,
 	}
 }

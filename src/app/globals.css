@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @theme inline {
 	/* Colors — mapped to CSS custom props */
@@ -138,6 +139,12 @@
 			background: rgb(3 4 6 / 0.97);
 		}
 	}
+}
+
+/* Blog prose: drop the typography plugin's decorative backticks around inline code */
+.prose :where(code)::before,
+.prose :where(code)::after {
+	content: none;
 }
 
 /* Glassmorphism utility */

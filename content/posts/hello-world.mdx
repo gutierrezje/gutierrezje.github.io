@@ -1,0 +1,33 @@
+---
+title: Hello, world
+date: 2026-07-10
+description: A first post to prove the blog pipeline works.
+tags: [meta]
+draft: true
+---
+
+This is a starter post. Replace or delete it — anything dropped into
+`content/posts/` as `.md` or `.mdx` with the frontmatter above becomes a post
+at `/blog/<filename>`. While `draft: true` is set, a post shows up in
+`pnpm dev` (with a Draft badge) but is excluded from the published site;
+remove that line to publish.
+
+## What works out of the box
+
+Standard markdown renders through the typography styles:
+
+- **Bold**, _italic_, and `inline code`
+- [Links](https://nextjs.org)
+- Ordered and unordered lists
+
+```ts
+// Fenced code blocks too
+export function greet(name: string) {
+	return `Hello, ${name}`
+}
+```
+
+> Blockquotes for pull-out thoughts.
+
+Since posts are MDX, you can also import and embed React components when a
+post needs something interactive.
