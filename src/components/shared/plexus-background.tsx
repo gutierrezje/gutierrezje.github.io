@@ -221,8 +221,8 @@ export function PlexusBackground() {
 					Math.min(1, 0.42 + tri.tone * 0.2 + lift * 0.006 + slope * 0.0016),
 				)
 				const face = Math.round(238 - light * 24)
-				const edgeAlpha = Math.max(0.035, Math.min(0.22, 0.15 * Math.min(1.35, depthFade)))
-				const edgeWidth = Math.max(0.42, 0.7 * Math.min(1.3, depthFade))
+				const edgeAlpha = Math.max(0.06, Math.min(0.4, 0.28 * Math.min(1.35, depthFade)))
+				const edgeWidth = Math.max(0.6, 1.1 * Math.min(1.4, depthFade))
 
 				ctx.beginPath()
 				ctx.moveTo(a.screenX, a.screenY)
