@@ -231,7 +231,7 @@ export function PlexusBackground() {
 				ctx.closePath()
 				ctx.fillStyle = `rgb(${face}, ${face + 3}, ${face + 8})`
 				ctx.fill()
-				ctx.strokeStyle = `rgba(28, 36, 48, ${edgeAlpha})`
+				ctx.strokeStyle = `rgba(8, 10, 14, ${edgeAlpha})`
 				ctx.lineWidth = edgeWidth
 				ctx.stroke()
 			}
@@ -249,7 +249,7 @@ export function PlexusBackground() {
 				}
 				ctx.beginPath()
 				ctx.arc(p.screenX, p.screenY, Math.max(0.5, 1.05 * p.scale), 0, Math.PI * 2)
-				ctx.fillStyle = `rgba(28, 36, 48, ${0.18 * Math.min(1, p.scale)})`
+				ctx.fillStyle = `rgba(8, 10, 14, ${0.18 * Math.min(1, p.scale)})`
 				ctx.fill()
 			}
 
